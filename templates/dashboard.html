@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+    background: black;
+    color: lime;
+    font-family: monospace;
+}
+#console {
+    white-space: pre-wrap;
+}
+input {
+    background: black;
+    color: lime;
+    border: none;
+    outline: none;
+    width: 90%;
+}
+</style>
+</head>
+
+<body>
+
+<div id="console"></div>
+
+<div>
+<span>{{user}}@omega:~$ </span>
+<input id="cmd" onkeydown="run(event)" autofocus>
+</div>
+
+<script>
+let history = [];
+let index = -1;
+
+const commands = ["help","clear","echo","ls","touch","cat","write","rm"];
+
+function type(text) {
+    let c = document.getElementById("console");
+    c.innerHTML += text;
+}
+
+function run(e) {
+    let input = document.getElementById("cmd");
+
+    if (e.key === "Enter") {
+        let cmd = input.value;
+
+        history.push(cmd);
+        index = history.length;
+
+        type("\n{{user}}@omega:~$ " + cmd + "\n");
+
+        if (cmd === "clear") {
+            document.getElementById("console").innerHTML = "";
+        } else {
+            fetch("/command", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({command: cmd})
+            })
+            .then(res => res.json())
+            .then(data => type(data.response + "\n"));
+        }
+
+        input.value = "";
+    }
+
+    if (e.key === "ArrowUp") {
+        if (index > 0) index--;
+        input.value = history[index] || "";
+    }
+
+    if (e.key === "ArrowDown") {
+        if (index < history.length - 1) index++;
+        input.value = history[index] || "";
+    }
+
+    if (e.key === "Tab") {
+        e.preventDefault();
+        let value = input.value;
+        let match = commands.find(c => c.startsWith(value));
+        if (match) input.value =
